@@ -32,9 +32,12 @@ if [ -d "$ROOT/dist/client/assets" ]; then
 fi
 
 # 4. 私有静态资源 → dist/output_static/（排除代码文件）
+#    用 tar 管道替代 rsync（Vercel 等部署构建镜像未预装 rsync）
 if [ -d "$ROOT/shared/static" ]; then
   mkdir -p "$OUTPUT_STATIC"
-  rsync -a --exclude='*.ts' --exclude='*.tsx' --exclude='*.js' --exclude='*.jsx' "$ROOT/shared/static/" "$OUTPUT_STATIC/"
+  tar -C "$ROOT/shared/static" \
+    --exclude='*.ts' --exclude='*.tsx' --exclude='*.js' --exclude='*.jsx' \
+    -cf - . | tar -C "$OUTPUT_STATIC" -xf -
 fi
 
 # 5. capability 配置 → dist/output_capabilities/
