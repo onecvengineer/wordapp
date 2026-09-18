@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
-import { scopedStorage } from "@lark-apaas/client-toolkit-lite";
+import { vocabStore, DATA_VERSION } from "@/services/vocabStore";
 import { DEFAULT_WORDS, type IWordItem, type IQuizAnswers, type IFamiliarityMap, type Familiarity } from "@/data/vocabulary";
 
 import StatsBarSection from "./StatsBarSection";
@@ -9,132 +9,6 @@ import WordTableSection from "./WordTableSection";
 import AddWordFormSection from "./AddWordFormSection";
 import ArticleSection from "./ArticleSection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-
-const STORAGE_KEY_WORDS = "vocab_words";
-const STORAGE_KEY_ANSWERS = "vocab_quiz_answers";
-const STORAGE_KEY_FAMILIARITY = "vocab_familiarity";
-const STORAGE_KEY_VERSION = "vocab_data_version";
-
-/**
- * 数据版本号：当 DEFAULT_WORDS 发生结构性变更（如重新导入词库、字段变化）时，
- * 递增此版本号可让旧的本地缓存自动失效，避免显示陈旧数据。
- */
-const DATA_VERSION = "2026-08-27-v8";
-
-/**
- * 数据版本迁移：版本升级时**不再清空用户数据**。
- * - 保留用户已有的所有单词/自测/熟悉度；
- * - 将当前 DEFAULT_WORDS 中“默认词”（id 以 w-数字 开头且存在于旧默认列表里）与用户自定义词合并：
- *   · 用户自定义词（id 形如 w-<时间戳>）原样保留；
- *   · 默认词如在用户本地有更新（音标/例句/顺序），按新版本覆盖但不丢用户记录；
- * - 若本地没有任何 words 数据（首次打开），直接写 DEFAULT_WORDS。
- */
-function migrateIfNeeded() {
-  try {
-    const ver = scopedStorage.getItem(STORAGE_KEY_VERSION);
-    if (ver === DATA_VERSION) return;
-
-    const rawWords = scopedStorage.getItem(STORAGE_KEY_WORDS);
-    const rawAnswers = scopedStorage.getItem(STORAGE_KEY_ANSWERS);
-    const rawFamiliarity = scopedStorage.getItem(STORAGE_KEY_FAMILIARITY);
-
-    if (rawWords) {
-      try {
-        const saved = JSON.parse(rawWords) as IWordItem[];
-        if (Array.isArray(saved) && saved.length > 0) {
-          const savedIds = new Set(saved.map((w) => w.id));
-          const userCustoms = saved.filter((w) => /^w-1\d{12}$/.test(w.id));
-          const defaultById = new Map(DEFAULT_WORDS.map((w) => [w.id, w]));
-          // 合并：新默认词（id 在 DEFAULT_WORDS 中）取新版本定义，保留旧默认词的自测/熟悉度；
-          // 新增的默认词（用户本地没有的）直接追加；
-          // 用户自定义词原样追加到末尾，保持时间顺序。
-          const merged: IWordItem[] = [];
-          const seen = new Set<string>();
-          for (const w of DEFAULT_WORDS) {
-            if (!seen.has(w.id)) {
-              merged.push(w);
-              seen.add(w.id);
-            }
-          }
-          for (const w of userCustoms) {
-            if (!seen.has(w.id)) {
-              merged.push(w);
-              seen.add(w.id);
-            }
-          }
-          merged.forEach((w, i) => { w.no = i + 1; });
-          scopedStorage.setItem(STORAGE_KEY_WORDS, JSON.stringify(merged));
-
-          // 清理已删除词的自测与熟悉度记录，防止孤儿 id
-          try {
-            if (rawAnswers) {
-              const ans = JSON.parse(rawAnswers) as IQuizAnswers;
-              for (const id of Object.keys(ans)) {
-                if (!seen.has(id)) delete ans[id];
-              }
-              scopedStorage.setItem(STORAGE_KEY_ANSWERS, JSON.stringify(ans));
-            }
-            if (rawFamiliarity) {
-              const fam = JSON.parse(rawFamiliarity) as IFamiliarityMap;
-              for (const id of Object.keys(fam)) {
-                if (!seen.has(id)) delete fam[id];
-              }
-              scopedStorage.setItem(STORAGE_KEY_FAMILIARITY, JSON.stringify(fam));
-            }
-          } catch { /* 记录清理失败不阻塞 */ }
-        }
-      } catch {
-        // 本地数据损坏时回退到默认
-        scopedStorage.removeItem(STORAGE_KEY_WORDS);
-        scopedStorage.removeItem(STORAGE_KEY_ANSWERS);
-        scopedStorage.removeItem(STORAGE_KEY_FAMILIARITY);
-      }
-    }
-    scopedStorage.setItem(STORAGE_KEY_VERSION, DATA_VERSION);
-  } catch {
-    // ignore
-  }
-}
-
-function loadWords(): IWordItem[] {
-  migrateIfNeeded();
-  try {
-    const raw = scopedStorage.getItem(STORAGE_KEY_WORDS);
-    if (raw) {
-      const parsed = JSON.parse(raw) as IWordItem[];
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch {
-    // fallback to default
-  }
-  return DEFAULT_WORDS;
-}
-
-function loadAnswers(): IQuizAnswers {
-  try {
-    const raw = scopedStorage.getItem(STORAGE_KEY_ANSWERS);
-    if (raw) {
-      const parsed = JSON.parse(raw) as IQuizAnswers;
-      if (typeof parsed === "object" && parsed !== null) return parsed;
-    }
-  } catch {
-    // fallback
-  }
-  return {};
-}
-
-function loadFamiliarity(): IFamiliarityMap {
-  try {
-    const raw = scopedStorage.getItem(STORAGE_KEY_FAMILIARITY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as IFamiliarityMap;
-      if (typeof parsed === "object" && parsed !== null) return parsed;
-    }
-  } catch {
-    // fallback
-  }
-  return {};
-}
 
 /**
  * 朗读兜底说明：
@@ -165,25 +39,47 @@ function playDictAudio(word: string) {
 }
 
 export default function VocabularyQuizPage() {
-  const [words, setWords] = useState<IWordItem[]>(() => loadWords());
-  const [quizAnswers, setQuizAnswers] = useState<IQuizAnswers>(() => loadAnswers());
-  const [familiarity, setFamiliarity] = useState<IFamiliarityMap>(() => loadFamiliarity());
+  const [words, setWords] = useState<IWordItem[]>(DEFAULT_WORDS);
+  const [quizAnswers, setQuizAnswers] = useState<IQuizAnswers>({});
+  const [familiarity, setFamiliarity] = useState<IFamiliarityMap>({});
   const [keyword, setKeyword] = useState("");
+  // hydration 完成前不持久化，避免用默认值覆盖本地已存数据
+  const [hydrated, setHydrated] = useState(false);
+
+  // 异步加载词库数据（存取层为 async 接口，兼容未来 Supabase 接入）
+  useEffect(() => {
+    let cancelled = false;
+    vocabStore.load().then((snap) => {
+      if (cancelled) return;
+      if (snap) {
+        setWords(snap.words);
+        setQuizAnswers(snap.quizAnswers);
+        setFamiliarity(snap.familiarity);
+      }
+      setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 持久化 words
   useEffect(() => {
-    scopedStorage.setItem(STORAGE_KEY_WORDS, JSON.stringify(words));
-  }, [words]);
+    if (!hydrated) return;
+    void vocabStore.saveWords(words);
+  }, [words, hydrated]);
 
   // 持久化 answers
   useEffect(() => {
-    scopedStorage.setItem(STORAGE_KEY_ANSWERS, JSON.stringify(quizAnswers));
-  }, [quizAnswers]);
+    if (!hydrated) return;
+    void vocabStore.saveQuizAnswers(quizAnswers);
+  }, [quizAnswers, hydrated]);
 
   // 持久化 familiarity
   useEffect(() => {
-    scopedStorage.setItem(STORAGE_KEY_FAMILIARITY, JSON.stringify(familiarity));
-  }, [familiarity]);
+    if (!hydrated) return;
+    void vocabStore.saveFamiliarity(familiarity);
+  }, [familiarity, hydrated]);
 
   // 搜索过滤
   const filteredWords = useMemo(() => {

@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { scopedStorage } from '@lark-apaas/client-toolkit-lite';
+import { scopedStorage } from '@/lib/storage';
 import type { IWordItem } from '@/data/vocabulary';
 
 /* ============================================================ *
@@ -344,7 +344,7 @@ function ArticleSectionBase({ words }: ArticleSectionProps) {
   // 持久化 API Key
   const saveApiKey = useCallback((key: string) => {
     setApiKey(key);
-    try { scopedStorage.setItem(STORAGE_KEY_APIKEY, key); } catch {}
+    try { scopedStorage.setItem(STORAGE_KEY_APIKEY, key); } catch { /* ignore */ }
     if (key) toast.success('API Key 已保存');
   }, []);
 
@@ -377,9 +377,9 @@ function ArticleSectionBase({ words }: ArticleSectionProps) {
           try {
             scopedStorage.setItem(STORAGE_KEY_ARTICLE, local);
             scopedStorage.setItem(STORAGE_KEY_ARTICLE_WORDSIG, wordsSig);
-          } catch {}
+          } catch { /* ignore */ }
           toast.success(`已生成本地文章，涵盖 ${Math.min(words.length, 80)} 个单词`);
-        } catch (e) {
+        } catch {
           setLoadState('error');
           setErrorMsg('本地生成失败');
         }
@@ -398,11 +398,12 @@ function ArticleSectionBase({ words }: ArticleSectionProps) {
         try {
           scopedStorage.setItem(STORAGE_KEY_ARTICLE, accumulated);
           scopedStorage.setItem(STORAGE_KEY_ARTICLE_WORDSIG, wordsSig);
-        } catch {}
+        } catch { /* ignore */ }
         toast.success(`AI 已生成文章，涵盖 ${Math.min(words.length, 120)} 个单词`);
-      } catch (e: any) {
+      } catch (e) {
         setLoadState('error');
-        const msg = e?.name === 'AbortError' ? '已取消' : (e?.message || '生成失败');
+        const err = e as { name?: string; message?: string } | undefined;
+        const msg = err?.name === 'AbortError' ? '已取消' : (err?.message || '生成失败');
         setErrorMsg(msg);
         // AI 失败时回退到本地
         const local = buildLocalArticle(words);
@@ -422,7 +423,7 @@ function ArticleSectionBase({ words }: ArticleSectionProps) {
         setLoadState('success');
         return;
       }
-    } catch {}
+    } catch { /* ignore */ }
     // 没有缓存 → 自动生成一次（仅首次）
     generate(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
