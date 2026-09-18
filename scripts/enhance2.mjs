@@ -1,0 +1,156 @@
+// 第二轮：补全剩余缺失的音标和例句
+import fs from 'node:fs';
+
+// 先重新读取分析结果，拿到缺失列表
+const src = fs.readFileSync('src/data/vocabulary.ts', 'utf8');
+
+// 补充词典（第二轮：覆盖 analyze2 里剩余的真实英文单词）
+const IPA2 = {
+  "crosstalk": "/ˈkrɔːstɔːk/",
+  "light leakage": "/laɪt ˈliːkɪdʒ/",
+  "blurry": "/ˈblɜːri/",
+  "identification": "/aɪˌdentɪfɪˈkeɪʃən/",
+  "security compromise": "/sɪˈkjʊrəti ˈkɑːmprəmaɪz/",
+  "distorted": "/dɪˈstɔːrtɪd/",
+  "stone": "/stoʊn/",
+  "tones": "/toʊnz/",
+  "impairments": "/ɪmˈpermənts/",
+  "passenger": "/ˈpæsəndʒər/",
+  "primary": "/ˈpraɪmeri/",
+  "senior": "/ˈsiːniər/",
+  "substance": "/ˈsʌbstəns/",
+  "prohibited": "/proʊˈhɪbɪtɪd/",
+  "odor": "/ˈoʊdər/",
+  "odor and prohibited substance report": "/ˈoʊdər ænd proʊˈhɪbɪtɪd ˈsʌbstəns rɪˈpɔːrt/",
+  "antenna": "/ænˈtenə/",
+  "salt spray test": "/sɔːlt spreɪ test/",
+  "maturity": "/məˈtʃʊrəti/",
+  "causal relationship": "/ˈkɔːzəl rɪˈleɪʃənʃɪp/",
+  "harshness": "/ˈhɑːrʃnəs/",
+  "vibration": "/vaɪˈbreɪʃən/",
+  "objectionable": "/əbˈdʒekʃənəbəl/",
+  "mounting": "/ˈmaʊntɪŋ/",
+  "malfunction": "/mælˈfʌŋkʃən/",
+  "secure": "/sɪˈkjʊr/",
+  "screw": "/skruː/",
+  "dowel": "/ˈdaʊəl/",
+  "heat dissipation boss": "/hiːt ˌdɪsɪˈpeɪʃən bɑːs/",
+  "durability": "/ˌdʊrəˈbɪləti/",
+  "splash": "/splæʃ/",
+  "auto-recover": "/ˌɔːtoʊ rɪˈkʌvər/",
+  "clause": "/klɔːz/",
+  "breach": "/briːtʃ/",
+  "detached": "/dɪˈtætʃt/",
+  "windshield": "/ˈwɪndʃiːld/",
+  "degradation": "/ˌdeɡrəˈdeɪʃən/",
+  "dgradation": "/ˌdeɡrəˈdeɪʃən/",
+  "service": "/ˈsɜːrvɪs/",
+  "permanent": "/ˈpɜːrmənənt/",
+  "allegation": "/ˌæləˈɡeɪʃən/",
+  "relevant": "/ˈreləvənt/",
+  "confidentiality": "/ˌkɑːnfɪˌdenʃiˈæləti/",
+  "gadget": "/ˈɡædʒɪt/",
+  "connectivity": "/ˌkɑːnekˈtɪvəti/",
+  "infrastructure": "/ˈɪnfrəstrʌktʃər/",
+  "compromise": "/ˈkɑːmprəmaɪz/",
+  "complaint": "/kəmˈpleɪnt/",
+  "defect": "/ˈdiːfekt/",
+  "corrosion": "/kəˈroʊʒən/",
+  "consumption": "/kənˈsʌmpʃən/",
+  "emission": "/iˈmɪʃən/",
+  "collision": "/kəˈlɪʒən/",
+  "calibration": "/ˌkælɪˈbreɪʃən/",
+  "ignition": "/ɪɡˈnɪʃən/",
+  "injection": "/ɪnˈdʒekʃən/",
+  "projection": "/prəˈdʒekʃən/",
+  "detection": "/dɪˈtekʃən/",
+  "connection": "/kəˈnekʃən/",
+  "rejection": "/rɪˈdʒekʃən/",
+  "correction": "/kəˈrekʃən/",
+  "instruction": "/ɪnˈstrʌkʃən/",
+  "assumption": "/əˈsʌmpʃən/",
+  "consumption": "/kənˈsʌmpʃən/",
+  "dimension": "/daɪˈmenʃən/",
+  "tension": "/ˈtenʃən/",
+  "session": "/ˈseʃən/",
+  "version": "/ˈvɜːrʒən/",
+  "region": "/ˈriːdʒən/",
+  "vision": "/ˈvɪʒən/",
+  "fusion": "/ˈfjuːʒən/",
+  "invasion": "/ɪnˈveɪʒən/",
+  "session": "/ˈseʃən/",
+};
+
+const EXAMPLES2 = {
+  "crosstalk": "Crosstalk between adjacent traces corrupts the signal.",
+  "light leakage": "Light leakage is visible around the display edges.",
+  "blurry": "The captured image appears blurry in low light.",
+  "identification": "Fault identification is the first step of debugging.",
+  "security compromise": "A security compromise must be reported within 24 hours.",
+  "distorted": "The audio output was distorted at high volume.",
+  "stone": "A stone chipped the windshield on the highway.",
+  "tones": "Dual-tone multi-frequency signaling is used for dialing.",
+  "impairments": "Audio impairments degrade the calling experience.",
+  "passenger": "The passenger airbag deploys only when the seat is occupied.",
+  "primary": "The primary function of the ECU is engine control.",
+  "senior": "A senior engineer reviewed the architecture.",
+  "substance": "Hazardous substance levels must comply with RoHS.",
+  "prohibited": "Phones are prohibited in the cleanroom.",
+  "odor": "An unusual odor was reported near the battery pack.",
+  "odor and prohibited substance report": "The odor and prohibited substance report is filed quarterly.",
+  "antenna": "The shark-fin antenna houses GPS and LTE elements.",
+  "salt spray test": "The salt spray test validates corrosion resistance.",
+  "maturity": "The software maturity level is assessed at each gate.",
+  "causal relationship": "We must prove a causal relationship between root cause and failure.",
+  "harshness": "Noise, vibration, and harshness (NVH) targets drive isolation design.",
+  "vibration": "Excessive vibration loosens the mounting screws.",
+  "objectionable": "Obj ectionable noise must be engineered out before SOP.",
+  "mounting": "The mounting bracket must withstand 50G shock.",
+  "malfunction": "A sensor malfunction triggered the warning lamp.",
+  "secure": "Secure the connector until the latch clicks.",
+  "screw": "Tighten the screw to the specified torque.",
+  "dowel": "The dowel pin aligns the two housing halves.",
+  "heat dissipation boss": "The heat dissipation boss contacts the chassis for cooling.",
+  "durability": "Durability testing runs for the equivalent of 10 years.",
+  "splash": "The enclosure must withstand water splash per IPX4.",
+  "auto-recover": "The watchdog lets the system auto-recover from a stall.",
+  "clause": "Clause 8 of the contract defines warranty terms.",
+  "breach": "A data breach exposes customer information.",
+  "detached": "The connector detached during the vibration profile.",
+  "windshield": "The camera is mounted behind the windshield.",
+  "degradation": "Battery degradation is monitored per cycle.",
+  "dgradation": "Performance degradation is logged over time.",
+  "service": "Schedule service every 10,000 kilometers.",
+  "permanent": "The fault caused permanent damage to the coil.",
+  "allegation": "The allegation was investigated by the quality team.",
+  "relevant": "Please attach all relevant test reports.",
+  "confidentiality": "A confidentiality agreement protects the design data.",
+  "gadget": "The gadget integrates a clock and a timer.",
+  "connectivity": "Bluetooth and Wi-Fi provide wireless connectivity.",
+  "infrastructure": "The charging infrastructure covers the test campus.",
+  "compromise": "A firmware compromise allows remote code execution.",
+  "complaint": "Each customer complaint is logged and tracked.",
+  "defect": "The defect rate is tracked per million opportunities.",
+  "corrosion": "Galvanic corrosion occurs between dissimilar metals.",
+  "consumption": "Fuel consumption is reported via the trip computer.",
+  "emission": "Evaporative emission limits are set by regulation.",
+  "collision": "The airbag deploys within milliseconds of a collision.",
+};
+
+const lines = src.split('\n');
+const out = [];
+let fillPron = 0, fillEx = 0;
+
+for (const line of lines) {
+  const m = line.match(/^(\s+\{ no:\s*\d+,\s*word:\s*)"((?:[^"\\]|\\.)*)"(,\s*pronunciation:\s*)"((?:[^"\\]|\\.)*)"(,\s*meaning:\s*)"((?:[^"\\]|\\.)*)"(,\s*example:\s*)"((?:[^"\\]|\\.)*)"\s*\},?\s*$/);
+  if (!m) { out.push(line); continue; }
+  const [, pre, word, mid1, pron, mid2, meaning, mid3, example] = m;
+  let fp = pron, fe = example;
+  const key = word.toLowerCase().trim();
+  if (!fp.trim() && IPA2[key]) { fp = IPA2[key]; fillPron++; }
+  if (!fe.trim() && EXAMPLES2[key]) { fe = EXAMPLES2[key]; fillEx++; }
+  out.push(`${pre}"${word}"${mid1}"${fp}"${mid2}"${meaning}"${mid3}"${fe}"},`);
+}
+
+fs.writeFileSync('src/data/vocabulary.ts', out.join('\n'), 'utf8');
+console.log(`✅ Round 2: filled pron=${fillPron}, example=${fillEx}`);

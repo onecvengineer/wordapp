@@ -1,0 +1,67 @@
+total: 208
+without example: 154
+without pron: 154
+
+--- words WITHOUT example (first 30) ---
+   strong correlation
+   Pullup resistor
+   bias resistor
+   pull down resistor
+   series resistor
+   输出电压调节电阻
+   input ac couple capacitor
+   high common mode noise rejection ratio
+   amplifier
+   beads
+   Capacitor Rated voltage
+   DC resistance
+   Zener voltage
+   rated power
+   Zener diode
+   Short to battery diagnostic and protection
+   power supply filter capacitor
+   Rated voltage
+   partitioning
+   Non-optimal power plane partitioning
+   alternative/ɔːlˈtɜːrnətɪv/
+   sync up
+   prior
+   indication
+   capable
+   deficiencies
+   insufficient/ˌɪnsəˈfɪʃ(ə)nt/
+   innovation/ˌɪnəˈveɪʃ(ə)n/
+   filed performance
+   field
+
+--- words WITHOUT pronunciation (first 30) ---
+   输出电压调节电阻
+   high common mode noise rejection ratio
+   Non-optimal power plane partitioning
+   circuit/ˈsɜːrkɪt/
+   alternative/ɔːlˈtɜːrnətɪv/
+   sync up
+   durability
+   prior
+   indication
+   capable
+   deficiencies
+   insufficient/ˌɪnsəˈfɪʃ(ə)nt/
+   innovation/ˌɪnəˈveɪʃ(ə)n/
+   filed performance
+   field
+   determine/dɪˈtɜːrmɪn/
+   excitation
+   generated
+   maintain
+   acount
+   upgrade
+   peripheral
+   overcurrent info
+   inquiry
+   disturbed
+   bluetooth headset
+   reversing display
+   noise howling
+   stuck
+   Play back
